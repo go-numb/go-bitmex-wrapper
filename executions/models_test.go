@@ -53,8 +53,7 @@ func TestConnect(t *testing.T) {
 		}
 	}
 
-	loss := make(chan Losscut)
-	exec := New(loss)
+	exec := New()
 
 	req := tt{
 		Op:   "subscribe",
@@ -131,7 +130,11 @@ func TestConnect(t *testing.T) {
 	eg.Go(func() error {
 		for {
 			select {
-			case liq := <-loss:
+			case v := <-exec.Event:
+				liq, ok := v.(Losscut)
+				if !ok {
+					continue
+				}
 				copy := liq.Copy()
 				for i := range copy {
 					fmt.Printf("%+v\n", copy[i])

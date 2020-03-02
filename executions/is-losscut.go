@@ -13,10 +13,6 @@ type Losscut struct {
 	createdAt    time.Time
 }
 
-func (p *Execution) received(loss Losscut) {
-	p.l <- loss
-}
-
 // SetLiquidation 不利約定の集計
 func (p *Execution) SetLiquidation(liqs []bitmex.Liquidation) {
 	var loss Losscut

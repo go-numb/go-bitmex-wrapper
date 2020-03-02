@@ -34,13 +34,13 @@ type Execution struct {
 }
 
 // New is new Executes
-func New() *Execution {
+func New(ch chan Losscut) *Execution {
 	return &Execution{
 
 		prices:  make([]float64, 0),
 		volumes: make([]float64, 0),
 
-		l: make(chan Losscut),
+		l: ch,
 	}
 }
 
@@ -194,7 +194,7 @@ func (p *Execution) LTP() float64 {
 
 // Volume 1配信中の出来高
 // 正の場合は買い成が強く、負の場合は売り成が強い
-func (p *Execution) Volume() (sum, buy, sell float64) {
+func (p *Execution) Volume() (sum, buy, sell int) {
 	p.RLock()
 	defer p.RUnlock()
 	return p.buySize + p.sellSize, p.buySize, p.sellSize

@@ -2,57 +2,35 @@ package executions
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/go-numb/go-bitmex"
 )
 
 type Losscut struct {
-	isLosscut bool
-	symbol    string
-	side      int
-	volume    int
-	createdAt time.Time
+	isLosscut    bool
+	liquidations []bitmex.Liquidation
+	createdAt    time.Time
 }
 
-func (loss Losscut) revieved(c chan Losscut) {
-	c <- loss
-}
-
-func toInt(s string) int {
-	side := strings.ToLower(s)
-	if side == "buy" {
-		return 1
-	} else if side == "sell" {
-		return -1
-	}
-	return 0
-}
-
-func toSide(i int) string {
-	if 0 < i {
-		return "buy"
-	} else if i < 0 {
-		return "sell"
-	}
-	return 0
+func (p *Execution) recived(loss Losscut) {
+	p.l <- loss
 }
 
 // SetLiquidation 不利約定の集計
 func (p *Execution) SetLiquidation(liqs []bitmex.Liquidation) {
 	var loss Losscut
+	loss.liquidations = make([]bitmex.Liquidation, len(liqs))
+
 	for i := range liqs {
 		loss.isLosscut = true
-		loss.side += toInt(liqs[i].Side)
-		loss.volume += liqs[i].LeaveQty
+		loss.liquidations[i] = liqs[i]
 	}
-
-	loss.createdAt = time.Now()
 
 	// if gets Losscut, send to channel.
 	if loss.isLosscut {
-		go loss.revieved(p.l)
+		loss.createdAt = time.Now()
+		go p.recived(loss)
 	}
 }
 
@@ -60,12 +38,27 @@ func (p *Losscut) IsThere() bool {
 	return p.isLosscut
 }
 
-func (p *Losscut) Side() int {
-	return p.side
+func (p *Losscut) Price() (first, last float64) {
+	for i := range p.liquidations {
+		if i == 0 {
+			first = p.liquidations[i].Price
+			last = p.liquidations[i].Price
+		}
+		last = p.liquidations[i].Price
+	}
+
+	return first, last
 }
 
-func (p *Losscut) Volume() int {
-	return p.volume
+func (p *Losscut) Copy() []bitmex.Liquidation {
+	return p.liquidations
+}
+
+func (p *Losscut) Volume() (volume int) {
+	for i := range p.liquidations {
+		volume = p.liquidations[i].LeavesQty
+	}
+	return volume
 }
 
 func (p *Losscut) CreatedAt() time.Time {
@@ -73,5 +66,6 @@ func (p *Losscut) CreatedAt() time.Time {
 }
 
 func (p Losscut) String() string {
-	return fmt.Sprintf("%t,%s,%d,%s", p.isLosscut, toSide(p.side), p.volume, p.createdAt.Format("2006/01/02 15:04:05"))
+	first, last := p.Price()
+	return fmt.Sprintf("%t,%.1f,%.1f,%d,%s", p.isLosscut, first, last, p.Volume(), p.createdAt.Format("2006/01/02 15:04:05"))
 }

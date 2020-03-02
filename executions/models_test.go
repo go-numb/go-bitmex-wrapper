@@ -121,7 +121,7 @@ func TestConnect(t *testing.T) {
 					},
 				}
 				l.createdAt = time.Now()
-				exec.recived(l)
+				exec.received(l)
 
 			}
 		}

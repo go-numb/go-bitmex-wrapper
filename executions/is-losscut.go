@@ -13,7 +13,7 @@ type Losscut struct {
 	createdAt    time.Time
 }
 
-func (p *Execution) recived(loss Losscut) {
+func (p *Execution) received(loss Losscut) {
 	p.l <- loss
 }
 
@@ -30,7 +30,7 @@ func (p *Execution) SetLiquidation(liqs []bitmex.Liquidation) {
 	// if gets Losscut, send to channel.
 	if loss.isLosscut {
 		loss.createdAt = time.Now()
-		go p.recived(loss)
+		go p.received(loss)
 	}
 }
 
